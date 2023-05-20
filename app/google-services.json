@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "665798921085",
+    "project_id": "any-feeling",
+    "storage_bucket": "any-feeling.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:665798921085:android:206f0cbcdaf5137a6cda14",
+        "android_client_info": {
+          "package_name": "bu.ac.kr.anyfeeling"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "665798921085-mo5eqlefvr54vhaa6h6bs25nsegsis8h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMdZuqyRbVFKoMjTnwJZ3sqM1yPrXhwGA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "665798921085-mo5eqlefvr54vhaa6h6bs25nsegsis8h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
