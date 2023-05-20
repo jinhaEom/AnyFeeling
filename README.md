@@ -24,7 +24,11 @@
 width=200 height=350/>
 <img src="https://user-images.githubusercontent.com/84216838/163111013-cefebcb5-88df-4d34-80e3-64f8bcefde93.png" width=200 height=350/>
 &nbsp;
-<img src="https://user-images.githubusercontent.com/84216838/167243522-722d76dc-1f0e-48ca-8c99-546f3399e3e3.jpg" width=200 height=80/>
+
+
+## 1차 리팩토링 (23.05.20)
+- 기분별 탭이 SadActivity, HappyActivity등 여러개로 나뉘어져 있고 코드가 겹치던 부분을 MoodActivity 하나로 통합
+- playerViewModel이 Model처럼 쓰이던 부분 -> ViewModel화
+- Login쪽 Firebase Auth 액세스 만료로 인해 생략 
 
 </div>
-<video src="https://user-images.githubusercontent.com/84216838/166097283-d87d39c0-30eb-479d-9de8-ec52b22df3bd.mp4" width=200px height=350px />
