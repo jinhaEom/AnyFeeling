@@ -4,8 +4,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.SeekBar
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.LinearLayoutManager
 import bu.ac.kr.anyfeeling.PlayerViewModel
 import bu.ac.kr.anyfeeling.R
@@ -25,6 +28,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class MoodActivity : AppCompatActivity() {
     private lateinit var service: MusicService
@@ -46,28 +50,84 @@ class MoodActivity : AppCompatActivity() {
             playListAdapter.submitList(playerViewModel.getAdapterModels())
         }
 
+        // Initialize dependencies
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://run.mocky.io")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        service = retrofit.create(MusicService::class.java)
+
+        // Fetch music lists from server
+        fetchMusicLists()
+
         initPlayView()
         initPlayListButton()
         initPlayControlButtons()
         initRecyclerView()
         initSeekBar()
+    }
 
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://run.mocky.io")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+    private fun fetchMusicLists() {
+        val callList = listOf(
+            service.listHappyMusics(),
+            service.listSadMusics(),
+            service.listRomanticMusics(),
+            service.listGloomyMusics(),
+            service.listSexyMusics(),
+            service.listRelaxingMusics(),
+            service.listDarkMusics(),
+            service.listFunnyMusics()
+        )
 
-        val serviceClass = intent?.getSerializableExtra(EXTRA_SERVICE_CLASS) as? Class<out MusicService>
-        if (serviceClass != null) {
-            service = retrofit.create(MusicService::class.java)
-            getVideoListFromServer(service.listHappyMusics())
-            getVideoListFromServer(service.listSadMusics())
-            getVideoListFromServer(service.listRomanticMusics())
-            getVideoListFromServer(service.listGloomyMusics())
-            getVideoListFromServer(service.listSexyMusics())
-            getVideoListFromServer(service.listRelaxingMusics())
-            getVideoListFromServer(service.listDarkMusics())
-            getVideoListFromServer(service.listFunnyMusics())
+        val musicListLiveDataList = mutableListOf<LiveData<List<MusicModel>>>()
+        val remainingCalls = AtomicInteger(callList.size)
+        val mainHandler = Handler(Looper.getMainLooper())
+
+        fun onMusicListResponse(musicDto: MusicDto, musicListLiveData: MutableLiveData<List<MusicModel>>) {
+            val musicList = musicDto.musics.mapIndexed { index, musicEntity ->
+                musicEntity.mapper(index.toLong())
+            }
+            musicListLiveData.value = musicList
+
+            if (remainingCalls.decrementAndGet() == 0) {
+                mainHandler.post {
+                    val combinedMusicList = musicListLiveDataList.flatMap { it.value ?: emptyList() }
+                    playerViewModel.setPlayMusicList(combinedMusicList)
+                    playListAdapter.submitList(playerViewModel.getAdapterModels())
+                }
+            }
+        }
+
+        fun onMusicListFailure() {
+            // Handle failure
+
+            if (remainingCalls.decrementAndGet() == 0) {
+                mainHandler.post {
+                    val combinedMusicList = musicListLiveDataList.flatMap { it.value ?: emptyList() }
+                    playerViewModel.setPlayMusicList(combinedMusicList)
+                    playListAdapter.submitList(playerViewModel.getAdapterModels())
+                }
+            }
+        }
+
+        fun createMusicListLiveData(): MutableLiveData<List<MusicModel>> {
+            val musicListLiveData = MutableLiveData<List<MusicModel>>()
+            musicListLiveDataList.add(musicListLiveData)
+            return musicListLiveData
+        }
+
+        for (call in callList) {
+            call.enqueue(object : Callback<MusicDto> {
+                override fun onResponse(call: Call<MusicDto>, response: Response<MusicDto>) {
+                    response.body()?.let { musicDto ->
+                        onMusicListResponse(musicDto, createMusicListLiveData())
+                    }
+                }
+
+                override fun onFailure(call: Call<MusicDto>, t: Throwable) {
+                    onMusicListFailure()
+                }
+            })
         }
     }
 
@@ -111,7 +171,6 @@ class MoodActivity : AppCompatActivity() {
             playerViewModel.setIsWatchingPlayListView(!(playerViewModel.getIsWatchingPlayListView().value ?: true))
         }
     }
-
 
     private fun initPlayControlButtons() {
         binding.playControlImageView.setOnClickListener {
@@ -182,25 +241,6 @@ class MoodActivity : AppCompatActivity() {
             TimeUnit.MINUTES.convert(duration, TimeUnit.MILLISECONDS),
             (duration / 1000) % 60
         )
-    }
-
-    private fun getVideoListFromServer(call: Call<MusicDto>) {
-        call.enqueue(object : Callback<MusicDto> {
-            override fun onResponse(call: Call<MusicDto>, response: Response<MusicDto>) {
-                response.body()?.let { musicDto ->
-                    val musicList = musicDto.musics.mapIndexed { index, musicEntity ->
-                        musicEntity.mapper(index.toLong())
-                    }
-                    playerViewModel.setPlayMusicList(musicList)
-                    playListAdapter.submitList(playerViewModel.getAdapterModels())
-                }
-            }
-
-
-            override fun onFailure(call: Call<MusicDto>, t: Throwable) {
-                // 실패 처리
-            }
-        })
     }
 
     private fun setMusicList(modelList: List<MusicModel>) {
