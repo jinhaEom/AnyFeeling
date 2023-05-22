@@ -14,10 +14,7 @@ import bu.ac.kr.anyfeeling.PlayerViewModel
 import bu.ac.kr.anyfeeling.R
 import bu.ac.kr.anyfeeling.adapter.PlayListAdapter
 import bu.ac.kr.anyfeeling.databinding.FragmentPlayerBinding
-import bu.ac.kr.anyfeeling.service.MusicDto
-import bu.ac.kr.anyfeeling.service.MusicModel
-import bu.ac.kr.anyfeeling.service.MusicService
-import bu.ac.kr.anyfeeling.service.mapper
+import bu.ac.kr.anyfeeling.service.*
 import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
@@ -45,20 +42,14 @@ class MoodActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         playerViewModel = ViewModelProvider(this).get(PlayerViewModel::class.java)
-        playerViewModel.getMusicList().observe(this) { musicList ->
-            setMusicList(musicList)
-            playListAdapter.submitList(playerViewModel.getAdapterModels())
+
+        val mood = intent.getStringExtra(EXTRA_MOOD)
+        if (mood != null) {
+            service = createMusicService()
+            fetchMusicListByMood(mood)
+        } else {
+            // Handle no mood selected case
         }
-
-        // Initialize dependencies
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://run.mocky.io")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-        service = retrofit.create(MusicService::class.java)
-
-        // Fetch music lists from server
-        fetchMusicLists()
 
         initPlayView()
         initPlayListButton()
@@ -67,68 +58,42 @@ class MoodActivity : AppCompatActivity() {
         initSeekBar()
     }
 
-    private fun fetchMusicLists() {
-        val callList = listOf(
-            service.listHappyMusics(),
-            service.listSadMusics(),
-            service.listRomanticMusics(),
-            service.listGloomyMusics(),
-            service.listSexyMusics(),
-            service.listRelaxingMusics(),
-            service.listDarkMusics(),
-            service.listFunnyMusics()
-        )
+    private fun createMusicService(): MusicService {
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://run.mocky.io")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        return retrofit.create(MusicService::class.java)
+    }
 
-        val musicListLiveDataList = mutableListOf<LiveData<List<MusicModel>>>()
-        val remainingCalls = AtomicInteger(callList.size)
-        val mainHandler = Handler(Looper.getMainLooper())
-
-        fun onMusicListResponse(musicDto: MusicDto, musicListLiveData: MutableLiveData<List<MusicModel>>) {
-            val musicList = musicDto.musics.mapIndexed { index, musicEntity ->
-                musicEntity.mapper(index.toLong())
-            }
-            musicListLiveData.value = musicList
-
-            if (remainingCalls.decrementAndGet() == 0) {
-                mainHandler.post {
-                    val combinedMusicList = musicListLiveDataList.flatMap { it.value ?: emptyList() }
-                    playerViewModel.setPlayMusicList(combinedMusicList)
-                    playListAdapter.submitList(playerViewModel.getAdapterModels())
-                }
-            }
+    private fun fetchMusicListByMood(mood: String) {
+        val call: Call<MusicDto> = when (mood) {
+            "Happy" -> service.listHappyMusics()
+            "Sad" -> service.listSadMusics()
+            "Romantic" -> service.listRomanticMusics()
+            "Gloomy" -> service.listGloomyMusics()
+            "Sexy" -> service.listSexyMusics()
+            "Relaxing" -> service.listRelaxingMusics()
+            "Dark" -> service.listDarkMusics()
+            "Funny" -> service.listFunnyMusics()
+            else -> throw IllegalArgumentException("Invalid mood: $mood")
         }
 
-        fun onMusicListFailure() {
-            // Handle failure
-
-            if (remainingCalls.decrementAndGet() == 0) {
-                mainHandler.post {
-                    val combinedMusicList = musicListLiveDataList.flatMap { it.value ?: emptyList() }
-                    playerViewModel.setPlayMusicList(combinedMusicList)
-                    playListAdapter.submitList(playerViewModel.getAdapterModels())
-                }
-            }
-        }
-
-        fun createMusicListLiveData(): MutableLiveData<List<MusicModel>> {
-            val musicListLiveData = MutableLiveData<List<MusicModel>>()
-            musicListLiveDataList.add(musicListLiveData)
-            return musicListLiveData
-        }
-
-        for (call in callList) {
-            call.enqueue(object : Callback<MusicDto> {
-                override fun onResponse(call: Call<MusicDto>, response: Response<MusicDto>) {
-                    response.body()?.let { musicDto ->
-                        onMusicListResponse(musicDto, createMusicListLiveData())
+        call.enqueue(object : Callback<MusicDto> {
+            override fun onResponse(call: Call<MusicDto>, response: Response<MusicDto>) {
+                response.body()?.let { musicDto ->
+                    val musicList = musicDto.musics.mapIndexed { index, musicEntity ->
+                        musicEntity.mapper(index.toLong())
                     }
+                    playerViewModel.setPlayMusicList(musicList)
+                    playListAdapter.submitList(playerViewModel.getAdapterModels())
                 }
+            }
 
-                override fun onFailure(call: Call<MusicDto>, t: Throwable) {
-                    onMusicListFailure()
-                }
-            })
-        }
+            override fun onFailure(call: Call<MusicDto>, t: Throwable) {
+                // Handle failure
+            }
+        })
     }
 
     private fun initPlayView() {
@@ -166,8 +131,10 @@ class MoodActivity : AppCompatActivity() {
     private fun initPlayListButton() {
         binding.playlistImageView.setOnClickListener {
             if (playerViewModel.getCurrentPosition().value == -1) return@setOnClickListener
-            binding.playerViewGroup.visibility = if (playerViewModel.getIsWatchingPlayListView().value == true) View.VISIBLE else View.GONE
-            binding.playListViewGroup.visibility = if (playerViewModel.getIsWatchingPlayListView().value != true) View.VISIBLE else View.GONE
+            binding.playerViewGroup.visibility =
+                if (playerViewModel.getIsWatchingPlayListView().value == true) View.VISIBLE else View.GONE
+            binding.playListViewGroup.visibility =
+                if (playerViewModel.getIsWatchingPlayListView().value != true) View.VISIBLE else View.GONE
             playerViewModel.setIsWatchingPlayListView(!(playerViewModel.getIsWatchingPlayListView().value ?: true))
         }
     }
@@ -275,7 +242,7 @@ class MoodActivity : AppCompatActivity() {
     }
 
     companion object {
-        const val EXTRA_SERVICE_CLASS = "extra_service_class"
+        const val EXTRA_MOOD = "extra_mood"
     }
 }
 

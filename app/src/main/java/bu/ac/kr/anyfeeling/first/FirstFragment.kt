@@ -23,40 +23,38 @@ class FirstFragment : Fragment(R.layout.fragment_firsttab) {
         mBinding = FragmentFirsttabBinding.inflate(inflater, container, false)
 
         mBinding.menuHappy.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Happy")
         }
         mBinding.menuSad.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Sad")
         }
         mBinding.menuRomantic.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Romantic")
         }
         mBinding.menuGloomy.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Gloomy")
         }
         mBinding.menuSexy.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Sexy")
         }
         mBinding.menuRelaxing.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Relaxing")
         }
         mBinding.menuDark.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Dark")
         }
         mBinding.menuFunny.setOnClickListener {
-            startMoodActivity<MusicService>()
+            startMoodActivity("Funny")
         }
 
         return mBinding.root
     }
 
-    private inline fun <reified T : MusicService> startMoodActivity() {
+    private fun startMoodActivity(mood: String) {
         val intent = Intent(context, MoodActivity::class.java)
-        intent.putExtra(MoodActivity.EXTRA_SERVICE_CLASS, T::class.java)
+        intent.putExtra(MoodActivity.EXTRA_MOOD, mood)
         startActivity(intent)
     }
-
-
 }
 
 
