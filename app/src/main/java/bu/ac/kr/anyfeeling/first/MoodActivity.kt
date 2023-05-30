@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.LinearLayoutManager
 import bu.ac.kr.anyfeeling.PlayerViewModel
 import bu.ac.kr.anyfeeling.R
+import bu.ac.kr.anyfeeling.Util.setOnOneClickListener
 import bu.ac.kr.anyfeeling.adapter.PlayListAdapter
 import bu.ac.kr.anyfeeling.databinding.FragmentPlayerBinding
 import bu.ac.kr.anyfeeling.service.*
@@ -87,6 +88,7 @@ class MoodActivity : AppCompatActivity() {
                     }
                     playerViewModel.setPlayMusicList(musicList)
                     playListAdapter.submitList(playerViewModel.getAdapterModels())
+                    setMusicList(musicList)
                 }
             }
 
@@ -129,8 +131,8 @@ class MoodActivity : AppCompatActivity() {
     }
 
     private fun initPlayListButton() {
-        binding.playlistImageView.setOnClickListener {
-            if (playerViewModel.getCurrentPosition().value == -1) return@setOnClickListener
+        binding.playlistImageView.setOnOneClickListener {
+            if (playerViewModel.getCurrentPosition().value == -1) return@setOnOneClickListener
             binding.playerViewGroup.visibility =
                 if (playerViewModel.getIsWatchingPlayListView().value == true) View.VISIBLE else View.GONE
             binding.playListViewGroup.visibility =
@@ -140,32 +142,35 @@ class MoodActivity : AppCompatActivity() {
     }
 
     private fun initPlayControlButtons() {
-        binding.playControlImageView.setOnClickListener {
+        binding.playControlImageView.setOnOneClickListener {
             if (player.isPlaying) {
                 player.pause()
             } else {
                 player.play()
             }
         }
-        binding.skipNextImageView.setOnClickListener {
-            val nextMusic = playerViewModel.nextMusic() ?: return@setOnClickListener
+        binding.skipNextImageView.setOnOneClickListener {
+            val nextMusic = playerViewModel.nextMusic() ?: return@setOnOneClickListener
             playMusic(nextMusic)
         }
-        binding.skipPrevImageView.setOnClickListener {
-            val prevMusic = playerViewModel.prevMusic() ?: return@setOnClickListener
+        binding.skipPrevImageView.setOnOneClickListener {
+            val prevMusic = playerViewModel.prevMusic() ?: return@setOnOneClickListener
             playMusic(prevMusic)
         }
     }
 
     private fun initRecyclerView() {
-        playListAdapter = PlayListAdapter {
-            playMusic(it)
+        playListAdapter = PlayListAdapter { musicModel ->
+            playMusic(musicModel) // 음악을 클릭하면 해당 음악을 재생합니다.
         }
         binding.playListRecyclerView.apply {
             adapter = playListAdapter
             layoutManager = LinearLayoutManager(context)
         }
     }
+
+
+
 
     private fun initSeekBar() {
         binding.playerSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -223,8 +228,12 @@ class MoodActivity : AppCompatActivity() {
     private fun playMusic(musicModel: MusicModel) {
         playerViewModel.updateCurrentPosition(musicModel)
         player.seekTo(playerViewModel.getCurrentPosition().value ?: 0, 0)
+        player.prepare()
         player.play()
+        updatePlayerView(musicModel)
+
     }
+
 
     private fun updatePlayerView(currentMusicModel: MusicModel?) {
         currentMusicModel ?: return

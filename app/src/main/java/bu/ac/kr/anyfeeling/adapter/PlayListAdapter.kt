@@ -13,26 +13,23 @@ import bu.ac.kr.anyfeeling.R
 import bu.ac.kr.anyfeeling.service.MusicModel
 import com.bumptech.glide.Glide
 
-class PlayListAdapter(private val callback :(MusicModel)-> Unit) : ListAdapter<MusicModel, PlayListAdapter.ViewHolder>(diffUtil)
-{
+class PlayListAdapter(private val callback: (MusicModel) -> Unit) : ListAdapter<MusicModel, PlayListAdapter.ViewHolder>(diffUtil) {
 
     inner class ViewHolder(private val view: View) : RecyclerView.ViewHolder(view) {
         fun bind(item: MusicModel) {
-            val trackTextview = view.findViewById<TextView>(R.id.itemTrackTextView)
+            val trackTextView = view.findViewById<TextView>(R.id.itemTrackTextView)
             val artistTextView = view.findViewById<TextView>(R.id.itemArtistTextView)
             val coverImageView = view.findViewById<ImageView>(R.id.itemCoverImageView)
 
-            trackTextview.text = item.track
+            trackTextView.text = item.track
             artistTextView.text = item.artist
 
             Glide.with(coverImageView.context)
                 .load(item.coverUrl)
                 .into(coverImageView)
 
-
             if(item.isPlaying){
                 itemView.setBackgroundColor(Color.GRAY)
-
             }else{
                 itemView.setBackgroundColor(Color.TRANSPARENT)
             }
@@ -40,35 +37,26 @@ class PlayListAdapter(private val callback :(MusicModel)-> Unit) : ListAdapter<M
                 callback(item)
             }
         }
-
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-
-        return ViewHolder(
-            LayoutInflater.from(parent.context).inflate(R.layout.item_music, parent, false)
-        )
+        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.item_music, parent, false)
+        return ViewHolder(itemView)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        currentList[position].also { musicModel ->
-            holder.bind(musicModel)
-
-        }
+        val item = getItem(position)
+        holder.bind(item)
     }
     companion object{
         val diffUtil = object : DiffUtil.ItemCallback<MusicModel>() {
             override fun areItemsTheSame(oldItem: MusicModel, newItem: MusicModel): Boolean {
-                //안에 있는 컨텐츠들을 비교하는 것
                 return oldItem.id == newItem.id
             }
 
             override fun areContentsTheSame(oldItem: MusicModel, newItem: MusicModel): Boolean {
-                //ID 값을 비교하는것
                 return oldItem == newItem
             }
-
         }
     }
-
 }
