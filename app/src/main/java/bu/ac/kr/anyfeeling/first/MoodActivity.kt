@@ -1,5 +1,7 @@
 package bu.ac.kr.anyfeeling.first
 
+import android.content.Intent
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
@@ -10,6 +12,7 @@ import android.widget.SeekBar
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.LinearLayoutManager
+import bu.ac.kr.anyfeeling.MusicPlayerService
 import bu.ac.kr.anyfeeling.PlayerViewModel
 import bu.ac.kr.anyfeeling.R
 import bu.ac.kr.anyfeeling.Util.setOnOneClickListener
@@ -51,7 +54,12 @@ class MoodActivity : AppCompatActivity() {
         } else {
             // Handle no mood selected case
         }
-
+        val intent = Intent(this, MusicPlayerService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            this.startForegroundService(intent)
+        } else {
+            this.startService(intent)
+        }
         initPlayView()
         initPlayListButton()
         initPlayControlButtons()
@@ -150,14 +158,17 @@ class MoodActivity : AppCompatActivity() {
             }
         }
         binding.skipNextImageView.setOnOneClickListener {
-            val nextMusic = playerViewModel.nextMusic() ?: return@setOnOneClickListener
-            playMusic(nextMusic)
+            val nextIntent = Intent(this, MusicPlayerService::class.java)
+            nextIntent.action = MusicPlayerService.NEXT_ACTION
+            startService(nextIntent)
         }
         binding.skipPrevImageView.setOnOneClickListener {
-            val prevMusic = playerViewModel.prevMusic() ?: return@setOnOneClickListener
-            playMusic(prevMusic)
+            val prevIntent = Intent(this, MusicPlayerService::class.java)
+            prevIntent.action = MusicPlayerService.PREV_ACTION
+            startService(prevIntent)
         }
     }
+
 
     private fun initRecyclerView() {
         playListAdapter = PlayListAdapter { musicModel ->
@@ -248,6 +259,8 @@ class MoodActivity : AppCompatActivity() {
         super.onDestroy()
         player.release()
         myHandler.removeCallbacks(updateSeekRunnable)
+        val intent = Intent(this, MusicPlayerService::class.java)
+        stopService(intent)
     }
 
     companion object {

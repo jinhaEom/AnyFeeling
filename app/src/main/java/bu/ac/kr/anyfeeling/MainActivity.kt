@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
 
 
+
         makeStatusBarTransparent(context = HomeFragment())
         supportFragmentManager.beginTransaction().add(R.id.container, HomeFragment())
             .commitAllowingStateLoss()
